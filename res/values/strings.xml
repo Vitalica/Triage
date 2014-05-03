@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Nimble Nurse</string>
+    <string name="action_settings">Settings</string>
+    <string name="nameLabel">Name: </string>
+    <string name="complaintLabel">Chief Complaint: </string>
+    <string name="welcomeMsg">Welcome to the Nimble Nurse!</string>
+    <string name="welcomeSub">Hello, I am the Nimble Nurse and I am here to help learn more about you so the doctor\'s can help you more quickly and effectively!</string>
+    <string name="beginButton">Begin!</string>
+
+    <string name="historyLabel">Past Medical History</string>
+    <string name="check1">HTN</string>
+    <string name="check2">Heart Disease</string>
+    <string name="check3">CVA</string>
+    <string name="check4">Cancer</string>
+    <string name="check5">Diabetes</string>
+    <string name="check6">HIV</string>
+    <string name="check7">Seizures</string>
+    <string name="check8">Asthma</string>
+
+    <string name="tempLabel">Temperature:</string>
+    <string name="temp">N/A</string>
+    <string name="takeTemp">Press To Take Temp</string>
+
+    <string name="ekgLabel">Electrocardiogram</string>
+
+    <string name="poLabel">Yet To Come!</string>
+
+    <string name="allergyLabel">Do you have any allergies?</string>
+    <string name="allergiesLabel">If so, please list them:</string>
+</resources>
