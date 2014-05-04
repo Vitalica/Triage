@@ -25,8 +25,9 @@
 
     <string name="ekgLabel">Electrocardiogram</string>
 
-    <string name="poLabel">Yet To Come!</string>
-
     <string name="allergyLabel">Do you have any allergies?</string>
     <string name="allergiesLabel">If so, please list them:</string>
+    <string name="getPO">Measure Pulse and Oxygenation</string>
+
+    <string name="poLabel">Please place your finger in the PulseOx and press the button when ready.</string>
 </resources>
