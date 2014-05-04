@@ -3,8 +3,10 @@ package edu.vanderbilt.isis.triag;
 /*
  * To all those brave enough to enter, ye be warned
  * 
- * 				Here there be hacking.
+ * 			   Here there be hacking.
  */
+
+import java.util.ArrayList;
 
 import org.achartengine.ChartFactory;
 import org.achartengine.GraphicalView;
@@ -24,6 +26,7 @@ import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.app.NavUtils;
 import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.view.ViewPager;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -37,7 +40,16 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-public class MainActivity extends FragmentActivity {
+import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.GraphView.GraphViewData;
+import com.jjoe64.graphview.GraphViewSeries;
+import com.jjoe64.graphview.LineGraphView;
+
+interface VitalicaListener{
+	public void ekgReceived(double[] measurements);
+}
+
+public class MainActivity extends FragmentActivity implements VitalicaListener{
 
     /**
      * The {@link android.support.v4.view.PagerAdapter} that will provide fragments representing
@@ -47,11 +59,24 @@ public class MainActivity extends FragmentActivity {
      * allowing navigation between objects in a potentially large collection.
      */
     DemoCollectionPagerAdapter mDemoCollectionPagerAdapter;
+    private static final int MAX_POINTS = 50;
+    private int xEnd = 0;
+
+    //Vitals Data
+    //private ArrayList<Double> EKGData = new ArrayList<Double>();
+    private XYSeries EKGData = new XYSeries("EKG Data");
+    private double temp = 0;
+    private int dataCount = 0;
+    Thread gen;
 
     /**
      * The {@link android.support.v4.view.ViewPager} that will display the object collection.
      */
     ViewPager mViewPager;
+    
+    public XYSeries getEKGData(){
+    	return EKGData;
+    }
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -74,78 +99,126 @@ public class MainActivity extends FragmentActivity {
         // Set up the ViewPager, attaching the adapter.
         mViewPager = (ViewPager) findViewById(R.id.pager);
         mViewPager.setAdapter(mDemoCollectionPagerAdapter);
+		gen = new Thread(new DataGen((VitalicaListener) this, 5, 500));
+		gen.start();
     }
     
     //Vital gathering functions
-    //OnClickListener getTemp = new OnClickListener() {
-    	public void getTemp(View view){
-    		String response = null;
-    		int color = Color.BLACK;
-
-    		//Get the temp 
-    		double temp = 0;
-    		//TODO
-
-    		//Get the appropriate response
-    		if(temp < 80){
-    			response = "Please point the sensor toward your mouth and try again";
-    		}else if(temp < 95){
-    			response = "Hypothermia";
-    			color = Color.BLUE;
-    		}else if(temp < 97){
-    			response = "Below Normal";
-    			color = Color.CYAN;
-    		}else if(temp < 99){
-    			response = "Normal";
-    			color = Color.GREEN;
-    		}else if(temp < 100){
-    			response = "Low Fever";
-    			color = Color.YELLOW;
-    		}else if(temp < 103){
-    			response = "Fever";
-    			color = Color.MAGENTA;
-    		}else if(temp < 107){
-    			response = "High Fever";
-    			color = Color.RED;
-    		}else{
-    			response = "Cooked";
-    			color = Color.RED;
-    		}
-
-    		//Remove the button
-    		LinearLayout tempBox = (LinearLayout)findViewById(R.id.tempBox);
-    		tempBox.removeAllViews();
-
-    		//Display the temp
-    		TextView tempLabel = new TextView(view.getContext());
-    		tempLabel.setText(response);
-    		tempLabel.setTextColor(color);
-    		tempLabel.setTextSize(40);
-
-    		TextView tempView = new TextView(view.getContext());
-    		tempView.setText(temp + "\u00b0F");
-    		tempView.setTextSize(90);
-
-    		tempView.setGravity(Gravity.CENTER);
-    		tempLabel.setGravity(Gravity.CENTER);
-
-    		//Add "Retake" button
-    		Button retake = new Button(view.getContext());
-    		retake.setText("Measure Again");
-    		retake.setTextSize(30);
-    		retake.setGravity(Gravity.CENTER);
-    		retake.setOnClickListener(cancelTemp);
-
-    		//Create layout rule for this button and add to container
-    		RelativeLayout cont = (RelativeLayout)findViewById(R.id.retakeBox);
-    		RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT); // or wrap_content
-    		layoutParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-    		cont.addView(retake , layoutParams);
-
-    		tempBox.addView(tempLabel);
-    		tempBox.addView(tempView);
+	@Override
+	public void ekgReceived(double[] measurements) {
+		Log.i("Activity STUFF", "EKG RECEIVED ----------");
+		//Store the ekg measurements
+		for(double m : measurements){
+			EKGData.add(xEnd++, m);
+			if(EKGData.getItemCount() > MAX_POINTS){
+				EKGData.remove(0);
+			}
+		}
+		FrameLayout graphSpot = (FrameLayout)findViewById(R.id.graphSpot);
+    	if(graphSpot != null){//If we can see a graph
+    		GraphicalView graph = (GraphicalView) graphSpot.getChildAt(0);
+    		graph.repaint();
+    		//graph.zoomReset();
     	}
-    //};
+		/*
+    		//graphSpot.removeAllViews();
+    		GraphView graph = (GraphView) graphSpot.getChildAt(0);
+    		for(double m : measurements){
+    			EKGData.appendData;
+    		}
+		 */
+
+		/*
+    		GraphicalView graph = (GraphicalView) graphSpot.getChildAt(0);
+
+    		XYSeries mCurrentSeries = new XYSeries("Sample Data");
+    		XYMultipleSeriesRenderer mRenderer = new XYMultipleSeriesRenderer();
+    		XYMultipleSeriesDataset mDataset = new XYMultipleSeriesDataset();
+    		XYSeriesRenderer mCurrentRenderer;
+
+    		mDataset.addSeries(mCurrentSeries);
+    		mCurrentRenderer = new XYSeriesRenderer();
+    		mRenderer.addSeriesRenderer(mCurrentRenderer);
+    		mRenderer.setShowLegend(false);
+
+    		//Create data set
+    		for(int i = 0; i < measurements.length; i++){
+    			mCurrentSeries.add(i, measurements[i]);
+    		}
+    		graph = ChartFactory.getCubeLineChartView(this, mDataset, mRenderer, 0.3f);
+
+    		//Add the
+    		graphSpot.addView(graph);
+	}
+		 */
+	}
+
+    public void getTemp(View view){
+    	String response = null;
+    	int color = Color.BLACK;
+
+    	//Get the temp 
+    	//TODO
+
+    	//Get the appropriate response
+    	if(temp < 80){
+    		response = "Please point the sensor toward your mouth and try again";
+    	}else if(temp < 95){
+    		response = "Hypothermia";
+    		color = Color.BLUE;
+    	}else if(temp < 97){
+    		response = "Below Normal";
+    		color = Color.CYAN;
+    	}else if(temp < 99){
+    		response = "Normal";
+    		color = Color.GREEN;
+    	}else if(temp < 100){
+    		response = "Low Fever";
+    		color = Color.YELLOW;
+    	}else if(temp < 103){
+    		response = "Fever";
+    		color = Color.MAGENTA;
+    	}else if(temp < 107){
+    		response = "High Fever";
+    		color = Color.RED;
+    	}else{
+    		response = "Cooked";
+    		color = Color.RED;
+    	}
+
+    	//Remove the button
+    	LinearLayout tempBox = (LinearLayout)findViewById(R.id.tempBox);
+    	tempBox.removeAllViews();
+
+    	//Display the temp
+    	TextView tempLabel = new TextView(view.getContext());
+    	tempLabel.setText(response);
+    	tempLabel.setTextColor(color);
+    	tempLabel.setTextSize(40);
+
+    	TextView tempView = new TextView(view.getContext());
+    	tempView.setText(temp + "\u00b0F");
+    	tempView.setTextSize(90);
+
+    	tempView.setGravity(Gravity.CENTER);
+    	tempLabel.setGravity(Gravity.CENTER);
+
+    	//Add "Retake" button
+    	Button retake = new Button(view.getContext());
+    	retake.setText("Measure Again");
+    	retake.setTextSize(30);
+    	retake.setGravity(Gravity.CENTER);
+    	retake.setOnClickListener(cancelTemp);
+
+    	//Create layout rule for this button and add to container
+    	RelativeLayout cont = (RelativeLayout)findViewById(R.id.retakeBox);
+    	RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT); // or wrap_content
+    	layoutParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+    	cont.addView(retake , layoutParams);
+
+    	tempBox.addView(tempLabel);
+    	tempBox.addView(tempView);
+    }
 
     OnClickListener cancelTemp = new OnClickListener() {
 		
@@ -278,9 +351,6 @@ public class MainActivity extends FragmentActivity {
                 Bundle savedInstanceState) {
         	//Create General Form
             View rootView = inflater.inflate(R.layout.form_general, container, false);
-            Bundle args = getArguments();
-            //((TextView) rootView.findViewById(android.R.id.text1)).setText(
-             //       Integer.toString(args.getInt(ARG_OBJECT)));
             return rootView;
         }
     }
@@ -294,9 +364,6 @@ public class MainActivity extends FragmentActivity {
                 Bundle savedInstanceState) {
         	//Create General Form
             View rootView = inflater.inflate(R.layout.form_temp, container, false);
-            Bundle args = getArguments();
-            //((TextView) rootView.findViewById(android.R.id.text1)).setText(
-             //       Integer.toString(args.getInt(ARG_OBJECT)));
             return rootView;
         }
     }
@@ -304,46 +371,82 @@ public class MainActivity extends FragmentActivity {
     public static class EKGSheet extends Fragment {
 
         public static final String ARG_OBJECT = "object";
-        private XYMultipleSeriesRenderer mRenderer = new XYMultipleSeriesRenderer();
-        private XYMultipleSeriesDataset mDataset = new XYMultipleSeriesDataset();
-        private XYSeries mCurrentSeries;
-        private XYSeriesRenderer mCurrentRenderer;
 
+        private static XYMultipleSeriesRenderer mRenderer = new XYMultipleSeriesRenderer();
+        private static XYMultipleSeriesDataset mDataset = new XYMultipleSeriesDataset();
+        private static XYSeriesRenderer mCurrentRenderer;
+        private static GraphicalView graph;
+
+       
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                 Bundle savedInstanceState) {
 
-            mCurrentSeries = new XYSeries("Sample Data");
-            mDataset.addSeries(mCurrentSeries);
-            mCurrentRenderer = new XYSeriesRenderer();
-            mRenderer.addSeriesRenderer(mCurrentRenderer);
-
-            addTestData();
-            //LineGraphView graph = new LineGraphView(this.getActivity(), "Electrocardiogram");
-            //GraphViewSeries series = new GraphViewSeries(new GraphViewData[] {
-            		//new GraphViewData(1, 2.0d)
-            		//, new GraphViewData(2, 1.5d)
-            		//, new GraphViewData(3, 2.5d)
-            		//, new GraphViewData(4, 1.0d)
-            //});
-            //graph.addSeries(series);
-            mRenderer.setShowLegend(false);
-            GraphicalView graph = ChartFactory.getCubeLineChartView(this.getActivity(), mDataset, mRenderer, 0.3f);
-            
             View rootView = inflater.inflate(R.layout.form_ekg, container, false);
-            Bundle args = getArguments();
 
             FrameLayout layout = (FrameLayout) rootView.findViewById(R.id.graphSpot);
-            layout.addView(graph);
+
+            //Check if the graph is already there
+            //If so, repaint
+    		if(layout.getChildCount() > 0){
+    			graph = (GraphicalView) layout.getChildAt(0);
+    			graph.zoomReset();
+    			graph.repaint();
+    		}else{
+    			initGraph();
+    		}
+
+    		layout.addView(graph);
 
             return rootView;
         }
         
-        private void addTestData(){
-        	for(int i = 0; i < 10; i++){
-        		mCurrentSeries.add(i,Math.random()*10);
-        	}
+        private void initGraph(){
+            mDataset.addSeries(((MainActivity) this.getActivity()).getEKGData());
+            mCurrentRenderer = new XYSeriesRenderer();
+            mRenderer.addSeriesRenderer(mCurrentRenderer);
+            mRenderer.setShowLegend(false);
+            
+            graph = ChartFactory.getCubeLineChartView(this.getActivity(), mDataset, mRenderer, 0.3f);
+
         }
+
+    }
+    
+    //REMOVE
+    private class DataGen implements Runnable{
+    	private ArrayList<VitalicaListener> reportee = new ArrayList<VitalicaListener>();
+    	private final int inc;
+    	private final int total;
+
+    	private int current = 0;
+    	
+    	public DataGen(VitalicaListener r, int i, int t){
+    		reportee.add(r);
+    		inc = i;
+    		total = t;
+        }
+    	
+		@Override
+		public void run() {
+			double[] measures = new double[5];
+
+			while((current += inc) < total){
+				for(int i = 0; i < measures.length; i++){
+					measures[i] = Math.random()*20;
+				}
+
+				for(VitalicaListener l : reportee){
+					l.ekgReceived(measures);
+				}
+
+				try {
+					Thread.sleep(333);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
     }
 
     public static class PulseOxSheet extends Fragment {
@@ -355,10 +458,9 @@ public class MainActivity extends FragmentActivity {
                 Bundle savedInstanceState) {
 
             View rootView = inflater.inflate(R.layout.form_po, container, false);
-            Bundle args = getArguments();
-            //TODO
 
             return rootView;
         }
     }
+
 }
