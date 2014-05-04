@@ -30,4 +30,7 @@
     <string name="getPO">Measure Pulse and Oxygenation</string>
 
     <string name="poLabel">Please place your finger in the PulseOx and press the button when ready.</string>
+
+    <string name="thanks">Your form has been submitted!</string>
+    <string name="soon">A physician will be with you shortly!</string>
 </resources>
